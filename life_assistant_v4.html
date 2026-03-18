@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的生活助理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f1117;--surface:#181c27;--surface2:#1e2335;--border:#2a3050;
+    --accent:#4f9cf9;--accent3:#f9a84f;--accent4:#f94f7a;
+    --text:#e8eaf0;--text2:#8891aa;--green:#38e0a0;--red:#f94f7a;
+    --mono:'DM Mono',monospace;--sans:'Noto Sans TC',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);padding:16px;font-size:14px;}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .header-title{font-size:20px;font-weight:700;}
+  .header-title span{color:var(--accent);}
+  .header-right{display:flex;align-items:center;gap:8px;}
+  .date-badge{font-family:var(--mono);font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border);padding:4px 10px;border-radius:20px;}
+  .key-status{font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;border:none;font-family:var(--sans);}
+  .key-ok{background:rgba(56,224,160,0.12);color:var(--green);border:1px solid rgba(56,224,160,0.3);}
+  .key-missing{background:rgba(249,79,122,0.12);color:var(--red);border:1px solid rgba(249,79,122,0.3);}
+  .tabs{display:flex;gap:3px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;}
+  .tab{flex:1;padding:7px 4px;border-radius:7px;border:none;background:transparent;color:var(--text2);font-family:var(--sans);font-size:12px;cursor:pointer;transition:all 0.2s;}
+  .tab.active{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+  .panel{display:none;}.panel.active{display:block;animation:fi 0.2s ease;}
+  @keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .card-title{font-size:10px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0;}
+  input,textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border-color 0.2s;}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:80px;line-height:1.6;}
+  label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-weight:500;}
+  .field{margin-bottom:10px;}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn{padding:8px 14px;border-radius:8px;border:none;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:#3d8ae0;}
+  .btn-green{background:var(--green);color:#0f1117;}
+  .btn-green:hover{background:#2bc48c;}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+  .btn-ghost:hover{color:var(--text);}
+  .btn-danger{background:rgba(249,79,122,0.15);color:var(--red);border:1px solid rgba(249,79,122,0.3);}
+  .btn-sm{padding:5px 10px;font-size:11px;}
+  .btn-full{width:100%;justify-content:center;}
+
+  /* API Key Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100;display:none;}
+  .modal-bg.show{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:90%;max-width:420px;}
+  .modal-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+  .modal-desc{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:16px;}
+  .modal-desc a{color:var(--accent);}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;}
+
+  /* Word */
+  .word-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .word-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all 0.2s;}
+  .word-card:hover{border-color:var(--accent);}
+  .word-en{font-size:15px;font-weight:600;color:var(--accent);margin-bottom:2px;}
+  .word-ph{font-family:var(--mono);font-size:10px;color:var(--text2);margin-bottom:4px;}
+  .word-zh{font-size:13px;}
+  .word-ex{font-size:11px;color:var(--text2);line-height:1.5;margin-top:8px;display:none;border-top:1px solid var(--border);padding-top:8px;}
+  .word-card.flipped .word-ex{display:block;}
+  .word-tag{display:inline-block;font-size:9px;padding:1px 6px;border-radius:10px;background:var(--surface);color:var(--text2);border:1px solid var(--border);margin-top:3px;}
+
+  /* Credit card */
+  .cc-list{display:flex;flex-direction:column;gap:8px;}
+  .cc-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .cc-item.urgent{border-left:3px solid var(--red);}
+  .cc-item.soon{border-left:3px solid var(--accent3);}
+  .cc-item.ok{border-left:3px solid var(--green);}
+  .cc-top{display:flex;align-items:center;justify-content:space-between;}
+  .cc-bank{font-size:13px;font-weight:500;}
+  .cc-amount{font-family:var(--mono);font-size:14px;color:var(--accent3);}
+  .cc-date{font-size:10px;color:var(--text2);margin-top:2px;}
+  .badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:500;margin-left:5px;}
+  .badge-red{background:rgba(249,79,122,0.15);color:var(--red);}
+  .badge-yellow{background:rgba(249,168,79,0.15);color:var(--accent3);}
+  .badge-green{background:rgba(56,224,160,0.15);color:var(--green);}
+
+  /* Stock */
+  .stock-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+  .stock-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;transition:border-color 0.3s;}
+  .stock-card.buy-signal{border-color:rgba(56,224,160,0.5);}
+  .stock-card.wait-signal{border-color:rgba(249,168,79,0.5);}
+  .stock-card.avoid-signal{border-color:rgba(249,79,122,0.4);}
+  .stock-sym{font-family:var(--mono);font-size:16px;font-weight:500;}
+  .stock-name{font-size:10px;color:var(--text2);margin:2px 0 6px;}
+  .stock-price{font-family:var(--mono);font-size:18px;font-weight:500;}
+  .stock-chg{font-family:var(--mono);font-size:11px;margin-top:2px;}
+  .stock-week{font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;}
+  .stock-signal{font-size:11px;margin-top:6px;padding:4px 8px;border-radius:6px;font-weight:500;}
+  .signal-buy{background:rgba(56,224,160,0.12);color:var(--green);}
+  .signal-wait{background:rgba(249,168,79,0.12);color:var(--accent3);}
+  .signal-avoid{background:rgba(249,79,122,0.12);color:var(--red);}
+  .up{color:var(--green);}.down{color:var(--red);}
+
+  .ai-out{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;line-height:1.8;white-space:pre-wrap;margin-top:10px;}
+  .ai-loading{color:var(--text2);font-style:italic;display:flex;align-items:center;gap:8px;}
+  .spinner{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .dl-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(56,224,160,0.07);border:1px solid rgba(56,224,160,0.2);border-radius:10px;padding:10px 12px;margin-top:10px;}
+  .dl-info{font-size:12px;color:var(--green);}
+  .dl-info small{display:block;font-size:10px;color:var(--text2);margin-top:1px;}
+  .journal-entry{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;}
+  .journal-date{font-family:var(--mono);font-size:10px;color:var(--text2);margin-bottom:6px;}
+  .journal-content{font-size:13px;line-height:1.7;}
+  .empty{text-align:center;color:var(--text2);font-size:12px;padding:24px;}
+  .add-row{display:flex;gap:8px;margin-bottom:12px;}
+  .add-row input{flex:1;}
+  .notice{background:rgba(249,79,122,0.08);border:1px solid rgba(249,79,122,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;display:none;}
+  .notice.show{display:block;}
+  .notice strong{color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- API Key Modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-title">🔑 設定 API Key</div>
+    <div class="modal-desc">
+      請到 <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> 申請 API Key，
+      貼上後點儲存。Key 只存在你的瀏覽器本機，不會上傳到任何地方。
+    </div>
+    <div class="field">
+      <label>你的 Anthropic API Key</label>
+      <input type="password" id="key-input" placeholder="sk-ant-api03-...">
+    </div>
+    <div id="key-error" style="font-size:12px;color:var(--red);margin-top:6px;display:none;">請輸入正確格式的 Key（sk-ant- 開頭）</div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" onclick="saveKey()">💾 儲存 Key</button>
+      <button class="btn btn-ghost" onclick="closeModal()" id="cancel-btn">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-title">我的<span>生活助理</span></div>
+  <div class="header-right">
+    <div class="date-badge" id="today-date"></div>
+    <button class="key-status key-missing" id="key-btn" onclick="openModal()">⚙ 設定 Key</button>
+  </div>
+</div>
+
+<div class="notice" id="no-key-notice">
+  ⚠️ <strong>尚未設定 API Key</strong>，AI 功能無法使用。請點右上角「⚙ 設定 Key」輸入你的 Anthropic API Key。
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('vocab',this)">📚 單字</button>
+  <button class="tab" onclick="switchTab('credit',this)">💳 信用卡</button>
+  <button class="tab" onclick="switchTab('stock',this)">📈 美股</button>
+  <button class="tab" onclick="switchTab('journal',this)">📝 日誌</button>
+  <button class="tab" onclick="switchTab('calendar',this)">📅 行事曆</button>
+</div>
+
+<!-- 英文單字 -->
+<div class="panel active" id="panel-vocab">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent)"></span>今日10個英文單字</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <select id="vocab-level" style="flex:1">
+        <option value="初級">初級 A1-A2</option>
+        <option value="中級" selected>中級 B1-B2</option>
+        <option value="進階">進階 C1-C2</option>
+        <option value="多益考試必備">多益必備</option>
+      </select>
+      <button class="btn btn-primary" onclick="generateVocab()">✨ 產生單字</button>
+    </div>
+    <div id="vocab-area"><div class="empty">選擇難度後點「產生單字」<br><small style="margin-top:4px;display:block">點每張卡片翻面看例句</small></div></div>
+  </div>
+</div>
+
+<!-- 信用卡 -->
+<div class="panel" id="panel-credit">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent3)"></span>新增帳單</div>
+    <div class="row">
+      <div class="field">
+        <label>銀行名稱（可自由輸入）</label>
+        <input type="text" id="cc-bank" placeholder="任意銀行名稱" list="bank-list">
+        <datalist id="bank-list">
+          <option value="台新銀行"><option value="新光銀行"><option value="中國信託">
+          <option value="富邦銀行"><option value="玉山銀行"><option value="國泰世華">
+          <option value="聯邦銀行"><option value="永豐銀行"><option value="台灣銀行">
+          <option value="合作金庫"><option value="第一銀行"><option value="華南銀行">
+        </datalist>
+      </div>
+      <div class="field">
+        <label>應繳金額 NT$</label>
+        <input type="number" id="cc-amount" placeholder="例：40431">
+      </div>
+    </div>
+    <div class="field">
+      <label>繳款截止日</label>
+      <input type="date" id="cc-due">
+    </div>
+    <button class="btn btn-green btn-full" onclick="addCard()">＋ 新增帳單</button>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--green)"></span>本期帳單</div>
+    <div class="cc-list" id="cc-list"><div class="empty">尚無帳單，請新增</div></div>
+  </div>
+</div>
+
+<!-- 美股 -->
+<div class="panel" id="panel-stock">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--green)"></span>我的股票清單</div>
+    <div class="add-row">
+      <input type="text" id="stock-sym" placeholder="輸入任意股票代號 例：TSLA、META...">
+      <button class="btn btn-primary" onclick="addStock()">＋ 新增</button>
+    </div>
+    <div class="stock-grid" id="stock-grid">
+      <div class="empty" style="grid-column:1/-1">新增股票代號開始追蹤</div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-top:4px;">
+      💡 綠框＝建議買點　橘框＝觀望　紅框＝暫時避開
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--green)"></span>AI 深度分析</div>
+    <div class="add-row">
+      <input type="text" id="stock-analyze" placeholder="輸入代號做深度分析 例：NVDA">
+      <button class="btn btn-primary" onclick="analyzeStock()">深度分析</button>
+    </div>
+    <div id="stock-result" style="display:none" class="ai-out"></div>
+  </div>
+</div>
+
+<!-- 日誌 -->
+<div class="panel" id="panel-journal">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent4)"></span>今日日誌</div>
+    <div class="field">
+      <label>今天發生了什麼？隨意寫，我幫你整理</label>
+      <textarea id="journal-input" placeholder="例：今天開了很長的會，下班後接小孩，晚上讀了英文..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="writeJournal()">✨ AI 幫我整理成日誌</button>
+    <div id="journal-output" style="display:none" class="ai-out"></div>
+    <div id="journal-savebar" style="display:none" class="dl-bar">
+      <div class="dl-info">✅ 日誌整理完成 <small>點右側儲存到歷史</small></div>
+      <button class="btn btn-green btn-sm" onclick="saveJournal()">儲存</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent4)"></span>歷史日誌</div>
+    <div id="journal-list"><div class="empty">尚無日誌記錄</div></div>
+  </div>
+</div>
+
+<!-- 行事曆 -->
+<div class="panel" id="panel-calendar">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent)"></span>批次新增活動 → 下載 .ics</div>
+    <div class="field">
+      <label>貼上活動清單（格式不限，每行一筆）</label>
+      <textarea id="cal-input" rows="5" placeholder="例：&#10;英文課 每週一 18:00-21:00&#10;鋼琴課 3/20 下午2點&#10;多益考試 5/31 09:30-12:00"></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="parseCalendar()">✨ AI 解析並產生 .ics</button>
+    <div id="cal-output" style="display:none" class="ai-out"></div>
+    <div id="cal-dlbar" style="display:none" class="dl-bar">
+      <div class="dl-info">✅ 行事曆已產生 <small>下載後點兩下匯入 Google 日曆</small></div>
+      <button class="btn btn-green btn-sm" onclick="downloadIcs()">⬇ 下載 .ics</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== API Key 管理 =====
+function getKey(){return localStorage.getItem('anthropic_key')||'';}
+function saveKey(){
+  const k=document.getElementById('key-input').value.trim();
+  if(!k.startsWith('sk-ant-')){document.getElementById('key-error').style.display='block';return;}
+  localStorage.setItem('anthropic_key',k);
+  document.getElementById('key-error').style.display='none';
+  closeModal();
+  updateKeyStatus();
+}
+function openModal(){
+  const k=getKey();
+  if(k)document.getElementById('key-input').value=k;
+  document.getElementById('cancel-btn').style.display=k?'':'none';
+  document.getElementById('modal-bg').classList.add('show');
+}
+function closeModal(){
+  if(!getKey())return;
+  document.getElementById('modal-bg').classList.remove('show');
+}
+function updateKeyStatus(){
+  const k=getKey();
+  const btn=document.getElementById('key-btn');
+  const notice=document.getElementById('no-key-notice');
+  if(k){
+    btn.className='key-status key-ok';
+    btn.textContent='✅ Key 已設定';
+    notice.classList.remove('show');
+  } else {
+    btn.className='key-status key-missing';
+    btn.textContent='⚙ 設定 Key';
+    notice.classList.add('show');
+    openModal();
+  }
+}
+
+// ===== 初始化 =====
+const now=new Date();
+document.getElementById('today-date').textContent=
+  now.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+updateKeyStatus();
+
+function switchTab(name,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+async function callClaude(userMsg,system=''){
+  const k=getKey();
+  if(!k){alert('請先設定 API Key！點右上角「⚙ 設定 Key」');return '';}
+  const body={model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:userMsg}]};
+  if(system)body.system=system;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify(body)
+  });
+  const d=await res.json();
+  return d.content?.map(c=>c.text||'').join('')||'';
+}
+
+// ===== 英文單字 =====
+async function generateVocab(){
+  const level=document.getElementById('vocab-level').value;
+  const area=document.getElementById('vocab-area');
+  area.innerHTML='<div class="ai-out"><div class="ai-loading"><div class="spinner"></div>AI 產生中...</div></div>';
+  try{
+    const raw=await callClaude(
+      `給我10個${level}英文單字，只回傳JSON陣列，不要任何說明或markdown。格式：[{"en":"word","phonetic":"/wɜːrd/","pos":"n.","zh":"中文","example":"例句","example_zh":"例句中文"}]`,
+      '你是英文教師，只輸出純JSON陣列，絕對不加任何說明或markdown符號。'
+    );
+    if(!raw){area.innerHTML='<div class="empty">請先設定 API Key</div>';return;}
+    const words=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    area.innerHTML='<div class="word-grid">'+words.map(w=>`
+      <div class="word-card" onclick="this.classList.toggle('flipped')">
+        <div class="word-en">${w.en}</div>
+        <div class="word-ph">${w.phonetic}</div>
+        <div class="word-zh">${w.zh}</div>
+        <span class="word-tag">${w.pos}</span>
+        <div class="word-ex">${w.example}<br><span style="color:var(--accent);font-size:10px">${w.example_zh}</span></div>
+        <div style="font-size:10px;color:var(--text2);margin-top:5px">👆 點擊看例句</div>
+      </div>`).join('')+'</div>';
+  }catch(e){area.innerHTML='<div class="empty">產生失敗，請再試一次</div>';}
+}
+
+// ===== 信用卡 =====
+let cards=JSON.parse(localStorage.getItem('cc')||'[]');
+renderCards();
+
+function addCard(){
+  const bank=document.getElementById('cc-bank').value.trim();
+  const amount=+document.getElementById('cc-amount').value;
+  const due=document.getElementById('cc-due').value;
+  if(!bank||!amount||!due){alert('請填寫銀行、金額和截止日');return;}
+  cards.push({bank,amount,due});
+  localStorage.setItem('cc',JSON.stringify(cards));
+  document.getElementById('cc-bank').value='';
+  document.getElementById('cc-amount').value='';
+  document.getElementById('cc-due').value='';
+  renderCards();
+}
+
+function renderCards(){
+  const list=document.getElementById('cc-list');
+  if(!cards.length){list.innerHTML='<div class="empty">尚無帳單，請新增</div>';return;}
+  const today=new Date();
+  list.innerHTML=cards.map((c,i)=>{
+    const diff=Math.ceil((new Date(c.due)-today)/86400000);
+    let cls='ok',badge=`<span class="badge badge-green">${diff}天後</span>`;
+    if(diff<=0)badge=`<span class="badge badge-red">今天到期！</span>`,cls='urgent';
+    else if(diff<=3)badge=`<span class="badge badge-red">剩${diff}天</span>`,cls='urgent';
+    else if(diff<=7)badge=`<span class="badge badge-yellow">剩${diff}天</span>`,cls='soon';
+    return `<div class="cc-item ${cls}">
+      <div class="cc-top">
+        <div><div class="cc-bank">${c.bank}${badge}</div><div class="cc-date">截止：${c.due}</div></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="cc-amount">$${c.amount.toLocaleString()}</div>
+          <button class="btn btn-green btn-sm" onclick="dlCardIcs(${i})">⬇ .ics</button>
+          <button class="btn btn-danger btn-sm" onclick="delCard(${i})">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function delCard(i){cards.splice(i,1);localStorage.setItem('cc',JSON.stringify(cards));renderCards();}
+
+function dlCardIcs(i){
+  const c=cards[i],d=c.due.replace(/-/g,'');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Life Assistant//EN',
+    'BEGIN:VEVENT',`UID:cc-${i}-${d}@assistant`,
+    `SUMMARY:💳 ${c.bank}繳費 $${c.amount.toLocaleString()}`,
+    `DTSTART;TZID=Asia/Taipei:${d}T090000`,`DTEND;TZID=Asia/Taipei:${d}T093000`,
+    `DESCRIPTION:${c.bank}本期應繳：$${c.amount.toLocaleString()}`,
+    'BEGIN:VALARM','TRIGGER:-P3D','ACTION:DISPLAY',`DESCRIPTION:${c.bank}3天後到期！`,'END:VALARM',
+    'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY',`DESCRIPTION:${c.bank}明天到期！`,'END:VALARM',
+    'END:VEVENT','END:VCALENDAR'].join('\n');
+  dlFile(`${c.bank}.ics`,ics,'text/calendar');
+}
+
+// ===== 美股 =====
+let stocks=JSON.parse(localStorage.getItem('stocks')||'["VOO","NVDA","GOLD","AAPL"]');
+renderStocks();
+
+function addStock(){
+  const sym=document.getElementById('stock-sym').value.trim().toUpperCase();
+  if(!sym)return;
+  if(!stocks.includes(sym)){stocks.push(sym);localStorage.setItem('stocks',JSON.stringify(stocks));}
+  document.getElementById('stock-sym').value='';
+  renderStocks();
+}
+function removeStock(sym){
+  stocks=stocks.filter(s=>s!==sym);
+  localStorage.setItem('stocks',JSON.stringify(stocks));
+  renderStocks();
+}
+
+function renderStocks(){
+  const grid=document.getElementById('stock-grid');
+  if(!stocks.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1">輸入股票代號開始追蹤</div>';return;}
+  grid.innerHTML=stocks.map(s=>`
+    <div class="stock-card" id="sc-${s}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="stock-sym">${s}</div>
+        <button class="btn btn-danger btn-sm" onclick="removeStock('${s}')">✕</button>
+      </div>
+      <div class="stock-name" id="sn-${s}">載入中...</div>
+      <div class="stock-price" id="sp-${s}" style="color:var(--text2)">--</div>
+      <div class="stock-chg" id="sch-${s}">--</div>
+      <div class="stock-week" id="sw-${s}"></div>
+      <div id="ss-${s}"></div>
+    </div>`).join('');
+  stocks.forEach(s=>fetchStockData(s));
+}
+
+async function fetchStockData(sym){
+  try{
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=7d`;
+    const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+    const parsed=JSON.parse((await r.json()).contents);
+    const result=parsed.chart.result[0];
+    const meta=result.meta;
+    const closes=(result.indicators?.quote[0]?.close||[]).filter(v=>v!=null);
+    const price=meta.regularMarketPrice,prev=meta.chartPreviousClose;
+    const chg=price-prev,pct=(chg/prev*100).toFixed(2),up=chg>=0;
+    let weekTrend='';
+    if(closes.length>=2){
+      const wChg=((closes[closes.length-1]-closes[0])/closes[0]*100).toFixed(2);
+      weekTrend=`本週 ${wChg>=0?'▲':'▼'} ${Math.abs(wChg)}%（$${closes[0].toFixed(0)}→$${closes[closes.length-1].toFixed(0)}）`;
+    }
+    document.getElementById('sn-'+sym).textContent=meta.shortName||sym;
+    document.getElementById('sp-'+sym).textContent=`$${price.toFixed(2)}`;
+    document.getElementById('sp-'+sym).style.color='var(--text)';
+    document.getElementById('sch-'+sym).innerHTML=`<span class="${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(chg).toFixed(2)} (${up?'+':''}${pct}%)</span>`;
+    document.getElementById('sw-'+sym).textContent=weekTrend;
+    if(getKey())fetchBuySignal(sym,price,pct,weekTrend);
+  }catch(e){
+    const el=document.getElementById('sn-'+sym);
+    if(el)el.textContent='無法載入';
+  }
+}
+
+async function fetchBuySignal(sym,price,pct,weekTrend){
+  const ssEl=document.getElementById('ss-'+sym);
+  if(!ssEl)return;
+  ssEl.innerHTML='<div style="font-size:10px;color:var(--text2);margin-top:4px">AI 判斷中...</div>';
+  try{
+    const raw=await callClaude(
+      `股票${sym}今日價$${price}，今日${pct}%，${weekTrend}。只回傳JSON：{"signal":"buy"|"wait"|"avoid","reason":"15字內原因"}`,
+      '只輸出純JSON，不加任何說明。'
+    );
+    if(!raw){ssEl.innerHTML='';return;}
+    const d=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const labels={buy:'🟢 建議買點',wait:'🟡 觀望',avoid:'🔴 暫時避開'};
+    const cls={buy:'signal-buy',wait:'signal-wait',avoid:'signal-avoid'};
+    const cardCls={buy:'buy-signal',wait:'wait-signal',avoid:'avoid-signal'};
+    ssEl.innerHTML=`<div class="stock-signal ${cls[d.signal]}">${labels[d.signal]}　${d.reason}</div>`;
+    document.getElementById('sc-'+sym)?.classList.add(cardCls[d.signal]);
+  }catch(e){if(ssEl)ssEl.innerHTML='';}
+}
+
+async function analyzeStock(){
+  const sym=document.getElementById('stock-analyze').value.trim().toUpperCase();
+  if(!sym){alert('請輸入股票代號');return;}
+  const box=document.getElementById('stock-result');
+  box.style.display='block';
+  box.innerHTML='<div class="ai-loading"><div class="spinner"></div>深度分析中...</div>';
+  try{
+    const r=await callClaude(
+      `今天${now.toLocaleDateString('zh-TW')}，深度分析美股${sym}：1.本週走勢 2.技術面（支撐壓力均線RSI）3.基本面 4.今日是否買點及理由 5.短中長期建議 6.風險。繁體中文約300字，最後加免責聲明。`,
+      '你是專業美股分析師，繁體中文，專業易懂。'
+    );
+    box.textContent=r||'請先設定 API Key';
+  }catch(e){box.textContent='分析失敗，請再試一次。';}
+}
+
+// ===== 日誌 =====
+let journals=JSON.parse(localStorage.getItem('journals')||'[]');
+let lastJournal='';
+renderJournals();
+
+async function writeJournal(){
+  const input=document.getElementById('journal-input').value.trim();
+  if(!input){alert('請輸入今天的記錄');return;}
+  const out=document.getElementById('journal-output'),bar=document.getElementById('journal-savebar');
+  out.style.display='block';bar.style.display='none';
+  out.innerHTML='<div class="ai-loading"><div class="spinner"></div>整理中...</div>';
+  try{
+    const r=await callClaude(
+      `今天是${now.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}，我的記錄：\n\n${input}\n\n請整理成約150字溫暖日誌，第一人稱，含心情和反思。`,
+      '你是溫暖日記助手，繁體中文，語氣自然親切。'
+    );
+    out.textContent=r||'請先設定 API Key';
+    lastJournal=r;
+    if(r)bar.style.display='flex';
+  }catch(e){out.textContent='整理失敗，請再試一次。';}
+}
+
+function saveJournal(){
+  journals.unshift({date:now.toLocaleDateString('zh-TW'),content:lastJournal});
+  if(journals.length>30)journals.pop();
+  localStorage.setItem('journals',JSON.stringify(journals));
+  renderJournals();
+  document.getElementById('journal-input').value='';
+  document.getElementById('journal-output').style.display='none';
+  document.getElementById('journal-savebar').style.display='none';
+}
+
+function renderJournals(){
+  const list=document.getElementById('journal-list');
+  if(!journals.length){list.innerHTML='<div class="empty">尚無日誌記錄</div>';return;}
+  list.innerHTML=journals.slice(0,5).map(j=>`
+    <div class="journal-entry">
+      <div class="journal-date">${j.date}</div>
+      <div class="journal-content">${j.content}</div>
+    </div>`).join('');
+}
+
+// ===== 行事曆 =====
+let calContent='';
+
+async function parseCalendar(){
+  const input=document.getElementById('cal-input').value.trim();
+  if(!input){alert('請輸入活動清單');return;}
+  const out=document.getElementById('cal-output'),dlbar=document.getElementById('cal-dlbar');
+  out.style.display='block';dlbar.style.display='none';
+  out.innerHTML='<div class="ai-loading"><div class="spinner"></div>AI 解析中...</div>';
+  try{
+    const r=await callClaude(
+      `解析以下活動，轉成ICS的VEVENT區塊（只要VEVENT不要VCALENDAR）。時區Asia/Taipei，年份預設${now.getFullYear()}。每個事件加30分鐘提醒。只輸出ICS，不要說明。\n\n${input}`,
+      '只輸出純ICS格式VEVENT區塊。'
+    );
+    if(!r){out.textContent='請先設定 API Key';return;}
+    const count=(r.match(/BEGIN:VEVENT/g)||[]).length;
+    const summaries=(r.match(/SUMMARY:(.+)/g)||[]).map((m,i)=>`${i+1}. ${m.replace('SUMMARY:','')}`).join('\n');
+    out.textContent=`解析完成！共 ${count} 筆：\n${summaries}`;
+    calContent=`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Life Assistant//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nBEGIN:VTIMEZONE\nTZID:Asia/Taipei\nBEGIN:STANDARD\nTZOFFSETFROM:+0800\nTZOFFSETTO:+0800\nTZNAME:CST\nDTSTART:19700101T000000\nEND:STANDARD\nEND:VTIMEZONE\n${r}\nEND:VCALENDAR`;
+    dlbar.style.display='flex';
+  }catch(e){out.textContent='解析失敗，請再試一次。';}
+}
+
+function downloadIcs(){if(!calContent)return;dlFile('activities.ics',calContent,'text/calendar');}
+
+function dlFile(name,content,type){
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
